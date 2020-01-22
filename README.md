@@ -1,8 +1,19 @@
 # Duplicate File Tool
 Tool for finding and optionally deleting duplicate files in a directory
 
-# TODO
-Offer option to remove duplicate files
+# Release
+There is a windows 64-bit build under the [Release](Release) folder.
+
+No support will provided for this build.
+
+# Install
+Place the binary in whatever place you'd like. Then map the directory/folder containing the binary into the operating system PATH. 
+
+# Usage
+ - `cd` into the directory/folder you'd like to check for duplicate files
+ - Run `DuplicateFileTool` in this directory. The program will scan the files and list duplicates
+ - \[Optional - Deleting Duplicates\] choose `y` if you'd like to delete duplicate files
+ - Select the file from the index list that you would like to keep. All others will be deleted. `-1` allows you to skip this duplicate group and keep all files listed. 
 
 # Build
 Make sure to init the hash-library submodule repository:
@@ -25,3 +36,6 @@ This project makes use of a [fork of](https://github.com/Dakkra/hash-library/)  
 Duplicate File Tool: [LICENSE](LICENSE) GPL 3.0
 
 hash-library: [LICENSE](https://github.com/stbrumme/hash-library/blob/master/LICENSE) Zlib
+
+# Authors
+ - Chris Soderquist [Github](https://github.com/Dakkra), [Web](http://dakkra.com)

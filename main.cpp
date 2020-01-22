@@ -10,6 +10,7 @@
  * DuplicateFileTool is under the GPL 3.0 license
  */
 
+#include <cstdio>
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -51,6 +52,47 @@ std::string hash_of_file(const std::filesystem::path &filepath) {
     return sha256.getHash();
 }
 
+void delete_file(const std::filesystem::path &filepath) {
+    //We don't want the "./" prefix
+    std::string str_path = filepath.string().substr(2, filepath.string().size());
+
+    if (remove(str_path.c_str()) != 0) {
+        std::cout << "Could not delete " << str_path << std::endl;
+    } else {
+        std::cout << "Deleted." << std::endl;
+    }
+}
+
+void delete_menu(std::vector<std::vector<std::filesystem::path>> &duplicate_vector) {
+    uintmax_t counter = 0;
+    for (const auto &group : duplicate_vector) {
+        std::cout << "Group " << counter << ": " << std::endl;
+
+        //List files with their indices
+        std::cout << "[" << (-1) << "] -> " << "none" << std::endl;
+        for (int index = 0; index < group.size(); index++) {
+            std::cout << "[" << index << "] -> " << group[index] << std::endl;
+        }
+
+        std::cout << "Which index [n] would you like to keep?";
+        int keep;
+        std::cin >> keep;
+        if (keep == -1) {
+            std::cout << "Keeping all." << std::endl;
+            continue;
+        }
+        std::cout << "Keeping [" << keep << "] -> " << group[keep] << std::endl;
+
+        for (int index = 0; index < group.size(); index++) {
+            if (index == keep) continue;
+            std::cout << "Deleting [" << index << "] -> " << group[index] << std::endl;
+            delete_file(group[index]);
+        }
+
+        counter++;
+    }
+}
+
 int main() {
     std::cout << "Listing files in this directory with duplicates..." << std::endl;
 
@@ -59,6 +101,9 @@ int main() {
 
     //Map for the hash comparison stage
     std::unordered_map<std::string, std::vector<std::filesystem::path>> hashes_map;
+
+    //Vector for storing duplicates
+    std::vector<std::vector<std::filesystem::path>> duplicates_vector;
 
     std::filesystem::path local_dir = std::filesystem::current_path();
 
@@ -91,10 +136,11 @@ int main() {
 
     std::cout << "File hashes generated..." << std::endl;
 
-    //Print out matches
+    //Print out matches and add them to duplicates vector
     std::cout << "Match groups: " << std::endl << std::endl;
     for (const auto &set_pair : hashes_map) {
         if (set_pair.second.size() > 1) {
+            duplicates_vector.push_back(set_pair.second);
             std::cout << "|- These are similar|" << std::endl;
             for (const auto &path : set_pair.second) {
                 std::cout << "    -|" << path << std::endl;
@@ -104,6 +150,16 @@ int main() {
     }
 
     std::cout << "Done listing duplicate files." << std::endl;
+
+    //Ask user if they want to remove any duplicates
+    if (!duplicates_vector.empty()) {
+        std::cout << "Delete duplicates? [y/N]:";
+        char response;
+        std::cin.read(&response, 1);
+        if (response == 'y') delete_menu(duplicates_vector);
+    }
+
+    std::cout << "Exiting program." << std::endl;
 
     return 0;
 }

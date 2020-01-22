@@ -14,22 +14,39 @@
 #include <vector>
 #include <unordered_map>
 #include <fstream>
-#include <string>
 #include <filesystem>
 #include "hash-library/sha256.h"
 
+//1mb buffer -kinda big but necessary
+#define STREAM_BUF_SIZE 1048576
+
 std::string hash_of_file(const std::filesystem::path &filepath) {
-//    uint32_t buff_size = 4096;
-    SHA256 sha256;
+    //Create hash singleton and buffer
+    static SHA256 sha256;
+    sha256.reset();
+    char *buffer = new char[STREAM_BUF_SIZE]{};
+
     //We don't want the "./" prefix
     std::string str_path = filepath.string().substr(2, filepath.string().size());
+
+    //Get the size of the file in bytes
+    uintmax_t file_size = std::filesystem::file_size(filepath);
+
     //Open the file stream
     std::ifstream input_stream(str_path);
 
-    std::string linebuf;
-    while (input_stream.good()) {
-        std::getline(input_stream, linebuf);
-        sha256.add(linebuf.c_str(), linebuf.size());
+    //Read in and stream to hash algorithm
+    uintmax_t pos = 0;
+    while (true) {
+        //Determine number of bytes to read
+        uintmax_t bytes_to_read = STREAM_BUF_SIZE;
+        if (pos + bytes_to_read > file_size) bytes_to_read = (file_size - pos);
+
+        //Stream in data and hash
+        input_stream.read(buffer, bytes_to_read);
+        sha256.add(buffer, bytes_to_read);
+        pos += bytes_to_read;
+        if (file_size == pos) break;
     }
     return sha256.getHash();
 }
@@ -37,18 +54,23 @@ std::string hash_of_file(const std::filesystem::path &filepath) {
 int main() {
     std::cout << "Listing files in this directory with duplicates..." << std::endl;
 
-    //Setup simple data structures
-    std::unordered_map<std::string, std::vector<std::filesystem::path>> hashes_map;
+    //Map for the size comparison stage
     std::unordered_map<uintmax_t, std::vector<std::filesystem::path>> sizes_map;
-    std::filesystem::path local_dir = "./";
+
+    //Map for the hash comparison stage
+    std::unordered_map<std::string, std::vector<std::filesystem::path>> hashes_map;
+
+    std::filesystem::path local_dir = std::filesystem::current_path();
 
     //Find all files in this directory and map them by their size
     for (const auto &file_path : std::filesystem::directory_iterator(local_dir)) {
+        //Ignore directories
+        if (std::filesystem::is_directory(file_path)) continue;
         uintmax_t size = std::filesystem::file_size(file_path);
         sizes_map[size].push_back(file_path);
     }
 
-    std::cout << "Files listed..." << std::endl;
+    std::cout << "Found files..." << std::endl;
 
     //File files with similar sizes
     std::vector<std::vector<std::filesystem::path>> duplicate_sets;
@@ -56,30 +78,32 @@ int main() {
         if (set.second.size() > 1) duplicate_sets.push_back(set.second);
     }
 
-    std::cout << "Sizes analyzed..." << std::endl;
+    std::cout << "File sizes analyzed..." << std::endl;
+    std::cout << "Hashing similar size files (this may take a while)..." << std::endl;
 
     //For each set, hash and find duplicates
     for (const auto &set : duplicate_sets) {
         for (const auto &path : set) {
             std::string hash = hash_of_file(path);
             hashes_map[hash].push_back(path);
-
         }
     }
 
-    std::cout << "Hashes generated..." << std::endl;
+    std::cout << "File hashes generated..." << std::endl;
 
     //Print out matches
-    std::cout << "Match groups: " << std::endl;
+    std::cout << "Match groups: " << std::endl << std::endl;
     for (const auto &set_pair : hashes_map) {
         if (set_pair.second.size() > 1) {
-            std::cout << "|- Group|" << std::endl;
+            std::cout << "|- These are similar|" << std::endl;
             for (const auto &path : set_pair.second) {
                 std::cout << "    -|" << path << std::endl;
             }
-            std::cout << "|- - - -|" << std::endl;
+            std::cout << "|- - - -|" << std::endl << std::endl;
         }
     }
+
+    std::cout << "Done listing duplicate files." << std::endl;
 
     return 0;
 }

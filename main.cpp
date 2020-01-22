@@ -17,14 +17,14 @@
 #include <filesystem>
 #include "hash-library/sha256.h"
 
-//1mb buffer -kinda big but necessary
-#define STREAM_BUF_SIZE 1048576
+//16mb buffer
+#define STREAM_BUF_SIZE (1048576 * 16)
 
 std::string hash_of_file(const std::filesystem::path &filepath) {
-    //Create hash singleton and buffer
+    //Create hash singleton and singleton buffer
     static SHA256 sha256;
     sha256.reset();
-    char *buffer = new char[STREAM_BUF_SIZE]{};
+    static char *buffer = new char[STREAM_BUF_SIZE]{};
 
     //We don't want the "./" prefix
     std::string str_path = filepath.string().substr(2, filepath.string().size());

@@ -19,7 +19,7 @@
 #include "hash-library/sha256.h"
 
 std::string hash_of_file(const std::filesystem::path &filepath) {
-    uint32_t buff_size = 4096;
+//    uint32_t buff_size = 4096;
     SHA256 sha256;
     //We don't want the "./" prefix
     std::string str_path = filepath.string().substr(2, filepath.string().size());
@@ -60,7 +60,7 @@ int main() {
 
     //For each set, hash and find duplicates
     for (const auto &set : duplicate_sets) {
-        for (const auto path : set) {
+        for (const auto &path : set) {
             std::string hash = hash_of_file(path);
             hashes_map[hash].push_back(path);
 
